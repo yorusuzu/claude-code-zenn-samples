@@ -1,0 +1,29 @@
+これは権限の挙動を確かめる検証です。以下の手順を、番号の順に、1 つずつ、前の手順が終わってから実行してください。並行して実行しないでください。
+どの手順も、失敗・拒否・エラーになっても、やり直さず、別の方法に切り替えず、次の手順に進んでください。ファイルを自分で作って埋め合わせることもしないでください。
+サブエージェントの呼び出しには Agent ツールを使い、subagent_type に名前を指定します。prompt は各手順に書かれた文をそのまま渡してください。
+
+【親が直接書く手順】Write ツールで、次のパスに、次の 1 行を書いてください。
+P1. zones/a0-allow/parent.txt に「parent-a0」
+P2. zones/a3-deny/parent.txt に「parent-a3」
+P3. zones/a3w-deny/parent.txt に「parent-a3w」
+P4. zones/a4-cli/parent.txt に「parent-a4」
+P5. zones/a8-hook/parent.txt に「parent-a8」
+
+【サブエージェントを呼ぶ手順】
+S1. subagent_type=t-allow、prompt「zones/a0-allow/sub-t-allow.txt に 1 行『sub-a0』を書いてください。」
+S2. subagent_type=t-readonly、prompt「zones/a1-readonly/sub-t-readonly.txt に 1 行『sub-a1』を書いてください。」
+S3. subagent_type=t-disallow-write、prompt「zones/a2-disallow/sub-t-disallow-write.txt に 1 行『sub-a2』を書いてください。」
+S4. subagent_type=t-disallow-inherit、prompt「zones/a2-disallow/sub-t-disallow-inherit.txt に 1 行『sub-a2i』を書いてください。」
+S5. subagent_type=t-allow、prompt「zones/a3-deny/sub-t-allow.txt に 1 行『sub-a3』を書いてください。」
+S6. subagent_type=t-allow、prompt「zones/a3w-deny/sub-t-allow.txt に 1 行『sub-a3w』を書いてください。」
+S7. subagent_type=t-allow、prompt「zones/a4-cli/sub-t-allow.txt に 1 行『sub-a4』を書いてください。」
+S8. subagent_type=t-plan、prompt「zones/a5-plan/sub-t-plan.txt に 1 行『sub-a5』を書いてください。」
+S9. subagent_type=t-allow、prompt「zones/a8-hook/sub-t-allow.txt に 1 行『sub-a8』を書いてください。」
+S10. subagent_type=t-control、prompt「caller=control」
+S11. subagent_type=t-nest、prompt「caller=nest」
+S12. subagent_type=t-nest-b、prompt「caller=nestb」
+S13. subagent_type=t-inherit、prompt「caller=inherit」
+S14. subagent_type=t-bash、prompt「zones/a7-bash/sub-t-bash.txt に 1 行『sub-a7』を Bash のリダイレクトで書いてください。」
+S15. subagent_type=t-bash、prompt「zones/a3-deny/sub-t-bash.txt に 1 行『sub-a7b』を Bash のリダイレクトで書いてください。」
+
+すべて終わったら、手順ごとに「成功 / 拒否 / エラー」と、返ってきたメッセージを 1 行ずつ報告してください。

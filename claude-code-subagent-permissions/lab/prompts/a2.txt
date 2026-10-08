@@ -1,0 +1,24 @@
+これは権限の挙動を確かめる検証です。以下の手順を、番号の順に、1 つずつ、前の手順が終わってから実行してください。並行して実行しないでください。
+どの手順も、失敗・拒否・エラーになっても、やり直さず、別の方法に切り替えず、次の手順に進んでください。ファイルを自分で作って埋め合わせることもしないでください。
+サブエージェントの呼び出しには Agent ツールを使い、subagent_type に名前を指定します。prompt は各手順に書かれた文をそのまま渡してください。
+
+【親が直接書く手順】Write ツールで、次のパスに、次の 1 行を書いてください。
+P1. zones/a0-allow/parent.txt に「parent-a0」
+P2. zones/a5b-noallow/parent.txt に「parent-a5b」
+P3. zones/a9-projallow/parent.txt に「parent-a9」
+
+【サブエージェントを呼ぶ手順】
+S1. subagent_type=t-allow、prompt「zones/a0-allow/sub-t-allow.txt に 1 行『sub-a0』を書いてください。」
+S2. subagent_type=t-allow、prompt「zones/a5b-noallow/sub-t-allow.txt に 1 行『sub-a5b』を書いてください。」
+S3. subagent_type=t-plan、prompt「zones/a5-plan/sub-t-plan.txt に 1 行『sub-a5』を書いてください。」
+S4. subagent_type=t-allow、prompt「zones/a9-projallow/sub-t-allow.txt に 1 行『sub-a9』を書いてください。」
+S5. subagent_type=t-echo、prompt「caller=direct」
+S6. subagent_type=t-control、prompt「あなたの仕事は Agent ツールを 1 回呼ぶことだけです。Agent ツールで subagent_type=t-echo、prompt=caller=control を呼んでください。Agent ツールが使えない場合は、ほかのツールを呼ばず、自分が使えるツールの名前をすべて列挙して返してください。」
+S7. subagent_type=t-inherit、prompt「あなたの仕事は Agent ツールを 1 回呼ぶことだけです。Agent ツールで subagent_type=t-echo、prompt=caller=inherit を呼んでください。Agent ツールが使えない場合は、ほかのツールを呼ばず、自分が使えるツールの名前をすべて列挙して返してください。」
+S8. subagent_type=t-nest、prompt「あなたの仕事は Agent ツールを 1 回呼ぶことだけです。Agent ツールで subagent_type=t-echo、prompt=caller=nest を呼んでください。Agent ツールが使えない場合は、ほかのツールを呼ばず、自分が使えるツールの名前をすべて列挙して返してください。」
+S9. subagent_type=t-nest-b、prompt「あなたの仕事は Agent ツールを 1 回呼ぶことだけです。Agent ツールで subagent_type=t-echo、prompt=caller=nestb を呼んでください。Agent ツールが使えない場合は、ほかのツールを呼ばず、自分が使えるツールの名前をすべて列挙して返してください。」
+S10. subagent_type=t-bash、prompt「Bash で echo "sub-a7" > zones/a7-bash/sub-t-bash.txt を実行してください。」
+S11. subagent_type=t-bash、prompt「Bash で、zones/a7-bash/sub-t-bash-bs.txt に『sub-a7bs』を echo のリダイレクトで書いてください。パスは作業ディレクトリからの絶対パスで、区切りはすべて円記号（バックスラッシュ）にしてください。」
+S12. subagent_type=t-bash、prompt「Bash で echo "sub-a7n" > zones/a7n-bash/sub-t-bash.txt を実行してください。」
+
+すべて終わったら、手順ごとに「成功 / 拒否 / エラー」と、返ってきたメッセージを 1 行ずつ報告してください。

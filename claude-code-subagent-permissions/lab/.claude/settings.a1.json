@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "deny": [
+      "Edit(/zones/a3-deny/**)",
+      "Write(/zones/a3w-deny/**)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/hooks/deny-zone.mjs\" logs/pretool.jsonl" }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/hooks/log-subagent.mjs\" logs/v1.jsonl --raw" },
+          { "type": "command", "command": "node hooks/log-subagent.mjs logs/v2.jsonl" },
+          { "type": "command", "command": "node \"%CLAUDE_PROJECT_DIR%\\hooks\\log-subagent.mjs\" logs/v3.jsonl" },
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/hooks/probe-env.mjs\" logs/env.jsonl" }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR/hooks/log-subagent.mjs\" logs/v1.jsonl --raw" },
+          { "type": "command", "command": "node hooks/log-subagent.mjs logs/v2.jsonl" },
+          { "type": "command", "command": "node \"%CLAUDE_PROJECT_DIR%\\hooks\\log-subagent.mjs\" logs/v3.jsonl" }
+        ]
+      }
+    ]
+  }
+}

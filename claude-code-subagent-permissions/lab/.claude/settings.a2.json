@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(/zones/a9-projallow/**)"
+    ],
+    "deny": [
+      "Edit(/zones/a3-deny/**)",
+      "Write(/zones/a3w-deny/**)"
+    ]
+  }
+}
