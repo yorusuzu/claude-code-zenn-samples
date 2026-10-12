@@ -1,0 +1,2 @@
+{"type":"result","subtype":"success","is_error":false,"api_error_status":null,"stop_reason":"end_turn","terminal_reason":"completed","num_turns":2,"total_cost_usd":0.001,"permission_denials":[],"result":"first"}
+{"type":"result","subtype":"success","is_error":false,"api_error_status":null,"stop_reason":"end_turn","terminal_reason":"completed","num_turns":2,"total_cost_usd":0.001,"permission_denials":[],"result":"last"}

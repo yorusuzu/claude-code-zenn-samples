@@ -1,0 +1,12 @@
+{
+ "type": "result",
+ "subtype": "success",
+ "is_error": false,
+ "api_error_status": null,
+ "stop_reason": "end_turn",
+ "terminal_reason": "completed",
+ "num_turns": 2,
+ "total_cost_usd": 0.0018899200000000002,
+ "permission_denials": [],
+ "result": "Write ツールで `zones/w/out.txt` に「written-by-write」と 1 行書き込みました。作成は成功しています。"
+}

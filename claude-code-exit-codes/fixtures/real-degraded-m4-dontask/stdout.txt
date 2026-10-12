@@ -1,0 +1,20 @@
+{
+ "type": "result",
+ "subtype": "success",
+ "is_error": false,
+ "api_error_status": null,
+ "stop_reason": "end_turn",
+ "terminal_reason": "completed",
+ "num_turns": 2,
+ "total_cost_usd": 0.00195902,
+ "permission_denials": [
+  {
+   "tool_name": "Write",
+   "tool_input": {
+    "file_path": "<tmp>\\claude-exit-codes-run\\cwd\\M4\\zones\\w\\out.txt",
+    "content": "written-by-write\n"
+   }
+  }
+ ],
+ "result": "拒否された（Write ツールが don't ask モードで権限拒否されました）。"
+}

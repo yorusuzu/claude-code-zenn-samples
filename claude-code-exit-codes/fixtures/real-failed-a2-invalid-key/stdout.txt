@@ -1,0 +1,12 @@
+{
+ "type": "result",
+ "subtype": "success",
+ "is_error": true,
+ "api_error_status": 401,
+ "stop_reason": "stop_sequence",
+ "terminal_reason": "api_error",
+ "num_turns": 1,
+ "total_cost_usd": 0,
+ "permission_denials": [],
+ "result": "Invalid API key · Fix external API key"
+}

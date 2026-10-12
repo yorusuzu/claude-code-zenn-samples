@@ -1,0 +1,10 @@
+{
+ "type": "result",
+ "subtype": "error_max_turns",
+ "is_error": true,
+ "stop_reason": "tool_use",
+ "terminal_reason": "max_turns",
+ "num_turns": 2,
+ "total_cost_usd": 0.0016471600000000002,
+ "permission_denials": []
+}

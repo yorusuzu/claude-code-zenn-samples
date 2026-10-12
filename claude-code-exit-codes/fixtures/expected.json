@@ -1,0 +1,132 @@
+{
+ "real-ok-m0": {
+  "verdict": "OK",
+  "synthetic": false,
+  "note": "ツールを使わない短い依頼。モデルは OK と返した（元: M0）"
+ },
+ "real-ok-m7": {
+  "verdict": "OK",
+  "synthetic": false,
+  "note": "Write を許可して実行。ファイルができた（陽性対照）（元: M7）"
+ },
+ "real-ok-n5b-broken-settings": {
+  "verdict": "OK",
+  "synthetic": false,
+  "note": "壊れた JSON の --settings を渡しても、無視されて普通に成功した（元: N5b）"
+ },
+ "real-degraded-m3-default-mode": {
+  "verdict": "DEGRADED",
+  "synthetic": false,
+  "note": "Write が許可されず拒否。終了コード 0、is_error false、subtype success、permission_denials 1（元: M3）"
+ },
+ "real-degraded-m4-dontask": {
+  "verdict": "DEGRADED",
+  "synthetic": false,
+  "note": "dontAsk で Write が拒否。終了コードは 0（元: M4）"
+ },
+ "real-degraded-v2-stream-json": {
+  "verdict": "DEGRADED",
+  "synthetic": false,
+  "note": "M4 を stream-json で。result イベントだけ残した（元: V2）"
+ },
+ "real-failed-m1-max-turns": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "--max-turns 1 を超えた。終了コード 1、subtype error_max_turns、is_error true（元: M1）"
+ },
+ "real-failed-m2-budget": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "--max-budget-usd を超えた。終了コード 1、subtype error_max_budget_usd（元: M2）"
+ },
+ "real-failed-v1-stream-json-max-turns": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "M1 を stream-json で。result イベントだけ残した（元: V1）"
+ },
+ "real-failed-a1-not-logged-in": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "認証情報なし。終了コード 1、subtype は success のまま is_error が true（元: A1）"
+ },
+ "real-failed-a2-invalid-key": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "無効な API キー。終了コード 1、api_error_status 401、subtype は success のまま（元: A2）"
+ },
+ "real-failed-r1-unknown-model": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "存在しないモデル名。終了コード 1、api_error_status 404、標準エラー出力に 1 行（元: R1）"
+ },
+ "real-failed-n1-unknown-flag": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "知らないオプション。終了コード 1、標準エラー出力にエラー、標準出力は空（元: N1）"
+ },
+ "real-failed-n2-no-prompt": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "プロンプトなし。終了コード 1（元: N2）"
+ },
+ "real-failed-n3-bad-format": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "--output-format に不正な値。終了コード 1（元: N3）"
+ },
+ "real-failed-n4-resume-missing": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "存在しない会話の --resume。終了コード 1（元: N4）"
+ },
+ "real-failed-n5a-settings-missing": {
+  "verdict": "FAILED",
+  "synthetic": false,
+  "note": "存在しない --settings ファイル。終了コード 1（元: N5a）"
+ },
+ "real-warn-v3-text": {
+  "verdict": "WARN",
+  "synthetic": false,
+  "note": "text 形式。拒否が起きていても、標準出力は短い文だけで、判定に使う項目がない（元: V3）"
+ },
+ "real-warn-n0-version": {
+  "verdict": "WARN",
+  "synthetic": false,
+  "note": "--version は終了コード 0 の text 出力。判定に使う項目がない（元: N0）"
+ },
+ "synth-failed-timeout": {
+  "verdict": "FAILED",
+  "synthetic": true,
+  "note": "合成。子プロセスを時間切れで強制終了した場合（出力なし）"
+ },
+ "synth-failed-exit0-is-error": {
+  "verdict": "FAILED",
+  "synthetic": true,
+  "note": "合成。終了コード 0 なのに is_error が true。2.1.293 の実測では起きなかった（is_error true は常に終了コード 1）"
+ },
+ "synth-failed-exit0-error-subtype": {
+  "verdict": "FAILED",
+  "synthetic": true,
+  "note": "合成。終了コード 0 なのに subtype が success でない。実測では起きなかった"
+ },
+ "synth-warn-stderr-on-success": {
+  "verdict": "WARN",
+  "synthetic": true,
+  "note": "合成。成功の形だが標準エラー出力に 1 行ある"
+ },
+ "synth-warn-two-results": {
+  "verdict": "WARN",
+  "synthetic": true,
+  "note": "合成。stream-json で result イベントが 2 個（最後だけを見ている）。実測（M6）では 1 個だった"
+ },
+ "synth-warn-unparsable-json": {
+  "verdict": "WARN",
+  "synthetic": true,
+  "note": "合成。終了コード 0 だが標準出力が JSON として読めない"
+ },
+ "synth-degraded-stream-json": {
+  "verdict": "DEGRADED",
+  "synthetic": true,
+  "note": "合成。stream-json の result に permission_denials が 1 件"
+ }
+}
