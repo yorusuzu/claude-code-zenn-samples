@@ -12,6 +12,7 @@
 - `tools` に `Agent` を書かない定義（t-nest-b）と、`disallowedTools: Agent` の定義（t-nest）は、孫を起動しなかった。2 回とも、定義に `Agent` が無いと自分で報告した。
 - 親の `permissions.deny` の `Edit(...)`、CLI の `--disallowedTools`、PreToolUse hook（exit 2）は、サブエージェントの呼び出しも止めた。`Write(...)` の deny は、親にもサブエージェントにも効かなかった（公式ドキュメントの記述と一致）。
 - 未信頼のフォルダの `claude -p` では、プロジェクトの `permissions.allow` は使われなかった（stderr に警告が出る。ドキュメントと一致）。2.1.158 では使われていた。
+- 追加の確認 X-1（2026-10-12 JST）: 同じ条件で、`.claude/settings.json` の allow は使われず、`.claude/settings.local.json` の allow（git リポジトリの中で未追跡）は使われた。`--allowedTools` も効いた。警告は stderr だけに出て、stream-json には出なかった。stream-json の tool_result と `permission_denials` は、「allow が無視された」場合と「allow が無い」場合で同じだった。詳しくは「追加の確認 X-1」の節。
 - コスト: 2 回の実行の合計は約 0.059 ドル（2.1.158 では約 0.43 ドル）。
 
 ## 既発表の記述との差分（先に読む部分）
@@ -38,7 +39,7 @@
 | サブエージェントの `permissionMode` | 親が `acceptEdits` / `auto` / `bypassPermissions` のときは無視され、`default` / `dontAsk` / `plan` のときは適用される | docs と一致した（t-plan は、`acceptEdits` の親で書け、`default` の親で止まった） | https://code.claude.com/docs/en/sub-agents |
 | `Write(path)` の deny | 受け付けられるが参照されない。パス規則は `Edit` と `Read` だけが参照される（v2.1.210 以降） | docs と一致した（A-3w、P3 は deny が効かず書けた） | https://code.claude.com/docs/en/permissions |
 | Bash のリダイレクト | 書き込み先に `Edit` の deny / allow が適用される | docs と整合する（A-7b は deny の拒否。A-2 の a7n は `Edit` の allow が無く、承認が必要な状態で止まった。両者は親のモードも違うので、原因の切り分けは推論） | https://code.claude.com/docs/en/permissions |
-| 未信頼フォルダの `-p` | プロジェクトの `permissions.allow` と `additionalDirectories` は使われない（stderr に警告）。hook、`env`、`.mcp.json` は使われる | docs と一致した（A-9b は書けず、警告が出た。A-1 では、同じく settings に書いた hook が動いた） | https://code.claude.com/docs/en/permissions |
+| 未信頼フォルダの `-p` | プロジェクトの `permissions.allow` と `additionalDirectories` は使われない（stderr に警告）。hook、`env`、`.mcp.json` は使われる | docs と一致した（A-9b は書けず、警告が出た。A-1 では、同じく settings に書いた hook が動いた）。X-1 では、`.claude/settings.json` の allow は使われず、`.claude/settings.local.json`（未追跡）の allow は使われた。後者と docs の突き合わせはしていない | https://code.claude.com/docs/en/permissions |
 | `--forward-subagent-text` | サブエージェントの本文を stream に流す（v2.1.211 以降）。流れたメッセージには `parent_tool_use_id` が付く | docs と矛盾しない（`parent_tool_use_id` つきのイベントが出た）。このフラグの効果は、付けなかった実行との比較をしていないため検証していない | https://code.claude.com/docs/en/headless |
 
 ## 環境
@@ -57,7 +58,7 @@
 - ユーザーレベルの設定（`~/.claude/settings.json`）は存在します。中身は読んでいません。`--setting-sources project,local` のため、この実行では読み込まれていません。init の `agents` は、組み込み 5 つ（claude、Explore、general-purpose、Plan、statusline-setup）と検証用の `t-*` 11 個の計 16 で、ユーザーレベルのエージェント定義は出ていません。
 - `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` は設定していません。hook に環境変数の「名前」だけを記録させたところ（`lab/hooks/probe-env.mjs`）、この変数は hook の環境にありませんでした（hook から見えた範囲の確認で、親プロセスの環境全体の確認ではありません）。
 - 検証用ディレクトリは `os.tmpdir()` の下に作り、実行後に削除しました。
-- モデルを呼ぶ実行は、2.1.293 で合計 2 回（A-1、A-2）です。3 回目はしていません。
+- モデルを呼ぶ実行は、2.1.293 で合計 2 回（A-1、A-2）です。3 回目はしていません。このほか、別の確認として X-1 を 1 回実行しました（「追加の確認 X-1」の節。環境はそこに書いています）。
 
 ## 実行したコマンド
 
@@ -193,6 +194,130 @@ A-1 の総数 7 は、下の A-1 の節に書いた、Write の拒否 6 件（P2
 - `check-zones.mjs` の期待表を、2.1.293 の結果に合わせました（孫の陽性対照は「あり」、A-9b の 2 行は「なし」）。実行ログ（`run-<run>.jsonl`）が無いときは警告を出します。
 - `settings.a1.json` に、環境変数の名前だけを記録する hook（`probe-env.mjs`）を足しました。
 - 実行は 2 回までと決めており、3 回目はしていません。
+
+## 追加の確認 X-1: 未信頼のフォルダの `claude -p` と、allow の置き場所（2.1.293）
+
+A-9b（未信頼のフォルダの `-p` では、プロジェクトの `permissions.allow` が使われない）を掘り下げるための追加の確認です。サブエージェントは使っていません。実行（モデルを呼ぶ `claude -p` 1 回と集計）は、このリポジトリの builder サブエージェント（Claude Code）が行いました。
+
+確かめたことは次の 4 つです。
+
+1. 警告は stderr だけに出るのか、stream-json（標準出力）にも出るのか
+2. `.claude/settings.local.json` の `permissions.allow` も使われないのか
+3. `--allowedTools` の許可は効くのか（陽性対照）
+4. 許可がないときの tool_result と `permission_denials`。「allow が無視された」場合と「もともと allow が無い」場合で、違いがあるか
+
+### X-1 の環境
+
+| 項目 | 値 |
+|---|---|
+| OS | Windows 11 Home 10.0.26200（Git Bash で実行） |
+| Node.js | v24.18.0 |
+| git | 2.54.0.windows.1 |
+| Claude Code | 2.1.293（`claude --version`。init の `claude_code_version` も 2.1.293） |
+| モデル | `--model haiku`（init の表示は `claude-haiku-5-5`） |
+| 実行日時 | 2026-10-12 01:00:49〜01:01:06（JST。日付は `node -e "console.log(new Date().toString())"` で確認） |
+| フォルダの信頼 | 未信頼。`os.tmpdir()` の下に新しく作ったディレクトリで、信頼ダイアログの承認も、`~/.claude.json` の変更もしていない |
+
+- 実行の直前に、A-1、A-2 と同じく、`ANTHROPIC_`、`CLAUDE`、`USE_LOCAL_OAUTH`、`USE_STAGING_OAUTH` で始まる名前の環境変数を unset しました（値は読んでいません）。
+- `~/.claude/settings.json` と `~/.claude.json` は、読んでも変更してもいません。
+- この環境では、Git Bash の PATH に `claude` が無かったため、そのシェルでだけ `~/.local/bin` を PATH に足して実行しました。
+
+### X-1 で置いた設定
+
+| 置き場所 | `permissions.allow` | 対象のゾーン |
+|---|---|---|
+| `.claude/settings.json`（`lab/.claude/settings.x1.json` のコピー） | `Edit(/zones/x-proj/**)`、`Bash(node mark.mjs proj)` | x-proj |
+| `.claude/settings.local.json`（`lab/.claude/settings.x1.local.json` のコピー） | `Edit(/zones/x-local/**)`、`Bash(node mark.mjs local)` | x-local |
+| コマンドラインの `--allowedTools` | `Edit(/zones/x-cli/**)`、`Bash(node mark.mjs cli)` | x-cli |
+| （どこにも書かない） | なし | x-none |
+
+Bash の確認には `node mark.mjs <名前>`（`lab/tools/mark.mjs`）を使いました。`zones/x-<名前>/bash-mark.txt` を書くスクリプトです。書き込み先のパスがコマンドに出てこないので、リダイレクト先に適用される `Edit` の許可と混ざらず、`Bash(...)` の許可だけを確かめられます。親のモードは `default` です。
+
+### X-1 の git の状態（`settings.local.json` の扱いに関わる条件）
+
+`settings.local.json` の扱いは、そのファイルが git で追跡されているか、フォルダが git リポジトリの中か外かで変わりうるため、実行後に次のとおり確認しました。
+
+| 項目 | 確認したコマンド | 結果 |
+|---|---|---|
+| 使い捨てのフォルダは git リポジトリの中か | `git rev-parse --is-inside-work-tree`、`git rev-parse --show-toplevel` | **中**（`true`）。リポジトリのルートは使い捨てのフォルダ自身（`setup-lab.mjs` が `git init` する）。親のディレクトリ（`<tmp>`）は git リポジトリではない |
+| コミットの数 | `git rev-list --all --count` | 0（`git add` もコミットもしていない） |
+| `.claude/settings.local.json` は追跡されているか | `git ls-files .claude/settings.local.json` | **追跡されていない**（出力なし。`git ls-files` 全体も 0 件） |
+| `.claude/settings.json` は追跡されているか | `git ls-files .claude/settings.json` | 追跡されていない（出力なし） |
+| `.gitignore` で除外されているか | `git check-ignore -v .claude/settings.local.json` | 除外されていない（`.gitignore` は無い。`git status` では未追跡 `??`） |
+
+- 確認は実行の後ですが、実行中のツール呼び出しは Write 4 回と `node mark.mjs` 4 回だけで、git のコマンドは呼ばれていません。実行の前後で git の状態は変わっていないと見ています。
+- つまり X-1 は、「git リポジトリの中にあり、`settings.json` も `settings.local.json` も未追跡」という 1 つの条件だけの結果です。`settings.local.json` が追跡されている場合や、git リポジトリの外のフォルダの場合は、試していません。
+
+### X-1 で実行したコマンド
+
+```
+node setup-lab.mjs --run x1
+cd <tmp>/claude-subagent-lab-x1
+claude -p --model haiku --setting-sources project,local --no-session-persistence --strict-mcp-config --forward-subagent-text --output-format stream-json --verbose --include-hook-events --max-budget-usd 2 --permission-mode default --allowedTools "Edit(/zones/x-cli/**)" "Bash(node mark.mjs cli)" < prompt.txt > run-x1.jsonl 2> run-x1.stderr
+
+node check-zones.mjs <tmp>/claude-subagent-lab-x1 --run x1
+node summarize-run.mjs <tmp>/claude-subagent-lab-x1/run-x1.jsonl --stderr <tmp>/claude-subagent-lab-x1/run-x1.stderr
+```
+
+共通のオプションは A-1、A-2 と同じです（`--forward-subagent-text` と `--include-hook-events` も、条件をそろえるために残しています）。モデルを呼ぶ実行は 1 回で、予備の 2 回目は使っていません。終了は正常で、401、429、クォータのエラーは出ませんでした（`rate_limit_event` は 1 件）。
+
+### X-1 の結果
+
+| ケース | allow の置き場所 | 操作 | 結果 | 根拠 |
+|---|---|---|---|---|
+| W1 | `settings.json` の `Edit(...)` | Write `zones/x-proj/write.txt` | 書けなかった | ファイルなし。tool_result（エラー）が「Claude requested permissions to write to `<tmp>\...\zones\x-proj\write.txt`, but you haven't granted it yet.」 |
+| B1 | `settings.json` の `Bash(...)` | `node mark.mjs proj` | 実行されなかった | ファイルなし。tool_result（エラー）が「This command requires approval」 |
+| W2 | `settings.local.json` の `Edit(...)` | Write `zones/x-local/write.txt` | **書けた** | ファイルあり（内容 `write-local`）。「File created successfully at: ...」 |
+| B2 | `settings.local.json` の `Bash(...)` | `node mark.mjs local` | **実行された** | ファイルあり（内容 `bash-local`）。「MARKED zones/x-local/bash-mark.txt」 |
+| W3 | `--allowedTools` の `Edit(...)` | Write `zones/x-cli/write.txt` | 書けた | ファイルあり（陽性対照） |
+| B3 | `--allowedTools` の `Bash(...)` | `node mark.mjs cli` | 実行された | ファイルあり（陽性対照） |
+| W4 | なし | Write `zones/x-none/write.txt` | 書けなかった | ファイルなし。W1 と同じ文面（パスだけ違う）（陰性対照） |
+| B4 | なし | `node mark.mjs none` | 実行されなかった | ファイルなし。B1 と同じ文面（陰性対照） |
+
+- `check-zones.mjs --run x1` では、期待のある 6 行はすべて「一致」でした。期待「不明」の x-local の 2 行は「あり」で、想定外のファイルはありませんでした。
+- stream-json は 32 イベント（assistant 13、user 8、`system/init` 1、`system/thinking_tokens` 4、`system/permission_denied` 4、`rate_limit_event` 1、`result/success` 1）でした。Agent の呼び出しは 0 回、hook のイベントも 0 件です。
+- `result` は 1 件で、`subtype: success`、`is_error: false`、`num_turns: 9`、`duration_ms: 14793`、`permission_denials` は 4 件（W1、W4 の Write と、B1、B4 の Bash）でした。
+
+### 1〜4 の判定
+
+1. **判定できた。警告は stderr だけに出た。** stderr は 1 行（308 バイト）で、置換後の全文は次のとおりです。
+
+   > Ignoring 2 permissions.allow entries from .claude/settings.json: this workspace has not been trusted. Run Claude Code interactively here once and accept the trust dialog, or set projects["&lt;tmp&gt;/claude-subagent-lab-x1"].hasTrustDialogAccepted: true in &lt;home&gt;\.claude.json.
+
+   標準出力（stream-json）は `run-x1.jsonl`、標準エラー出力は `run-x1.stderr` と、別のファイルに保存しています。それぞれを grep した結果は次のとおりです。
+
+   | ファイル | `grep -cE 'Ignoring .*permissions\.allow.*not been trusted'` | `grep -c 'permissions\.allow'` | `grep -c 'trusted'` |
+   |---|---|---|---|
+   | `run-x1.stderr`（標準エラー出力） | 1（出た） | 1 | 1 |
+   | `run-x1.jsonl`（標準出力、stream-json） | 0（出なかった） | 0 | 0 |
+
+   数えている「2 entries」は `settings.json` の 2 件で、`settings.local.json` には触れていません。stream-json の 32 イベントには、警告の語（`permissions.allow`、`not been trusted`、`untrusted`、`workspace trust`）も `trust`、`settings.json`、`ignor` も、1 件も出てきませんでした。init と result にも、フォルダの信頼の状態を示す項目はありませんでした（項目名で確認）。
+2. **判定できた（この版・この条件で）。`settings.local.json` の allow は使われた。** `Edit(...)` と `Bash(...)` の両方が効きました。使われなかったのは `settings.json` の allow だけです。この違いの理由と、ドキュメントの「プロジェクトの `permissions.allow`」に `settings.local.json` が含まれるかどうかは、この記録では判断していません。
+3. **判定できた。** `--allowedTools` の `Edit(...)` と `Bash(...)` は、どちらも効きました（W3、B3）。
+4. **判定できた。** allow が無視された x-proj と、もともと allow が無い x-none とで、次の 3 つは、パスやコマンド以外まったく同じでした。
+   - tool_result: Write は「... but you haven't granted it yet.」、Bash は「This command requires approval」。
+   - `system/permission_denied` イベント（4 件）: Write は `message` だけ、Bash は `decision_reason_type: "other"` と `decision_reason: "This command requires approval"`。信頼や設定ファイルに触れる項目はない。
+   - `result` の `permission_denials`: `tool_name`、`tool_use_id`、`tool_input` だけ。
+
+   モデルの最終返答も、W1、B1 と W4、B4 を同じく「拒否」と報告し、信頼や `settings.json` には触れませんでした。つまり、stream-json だけを見ていると、「allow を書いたのに無視された」のか「allow を書いていない」のかを区別できません。原因がわかるのは stderr だけです。
+
+### X-1 のコスト
+
+| 実行 | コスト（`result` の `total_cost_usd`） |
+|---|---|
+| X-1 | 0.00459096 ドル |
+
+### X-1 で確認していないこと
+
+- 信頼したフォルダでの挙動。信頼ダイアログの承認も、`~/.claude.json` の `hasTrustDialogAccepted` の変更もしていません。stderr の警告文はその 2 つの方法を案内していますが、どちらも試していません。
+- `settings.local.json` の allow が使われた理由。ドキュメントの記述との突き合わせも、この記録ではしていません。
+- `settings.local.json` が git で追跡されている場合と、git リポジトリの外のフォルダの場合（X-1 は、リポジトリの中で未追跡の 1 条件だけ）。
+- 版による違い（どの版から今の扱いになったか）。X-1 は 2.1.293 だけで、版の境目は確かめていません。
+- `settings.local.json` の `deny` や `additionalDirectories` など、`allow` 以外の項目の扱い。
+- `--setting-sources` を付けない場合（既定の読み込み）と、ユーザー設定（`~/.claude/settings.json`）の allow の扱い。
+- 対話モード、`--output-format json` / `text`、親が `default` 以外のモード、サブエージェントからの呼び出し。
+- haiku 以外のモデル、macOS / Linux、2.1.293 以外のバージョン。stderr の文言も、版で変わる可能性があります。
+- 1 回の実行です。モデルの振る舞いのばらつきは見ていません（ただし、判定の根拠はファイルの有無と tool_result で、モデルの自己申告ではありません）。
 
 ---
 

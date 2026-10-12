@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(/zones/x-local/**)",
+      "Bash(node mark.mjs local)"
+    ]
+  }
+}

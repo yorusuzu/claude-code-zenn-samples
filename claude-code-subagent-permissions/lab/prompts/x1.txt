@@ -1,0 +1,17 @@
+これは権限の挙動を確かめる検証です。以下の手順を、番号の順に、1 つずつ、前の手順が終わってから実行してください。並行して実行しないでください。
+どの手順も、失敗・拒否・エラーになっても、やり直さず、別の方法に切り替えず、次の手順に進んでください。ファイルを自分で作って埋め合わせることもしないでください。
+サブエージェント（Agent ツール）は使わないでください。
+
+【Write ツールで書く手順】Write ツールで、次のパスに、次の 1 行を書いてください。
+W1. zones/x-proj/write.txt に「write-proj」
+W2. zones/x-local/write.txt に「write-local」
+W3. zones/x-cli/write.txt に「write-cli」
+W4. zones/x-none/write.txt に「write-none」
+
+【Bash で実行する手順】Bash ツールで、次のコマンドを、書かれたとおりに（前後に何も足さず、パスも変えずに）実行してください。
+B1. node mark.mjs proj
+B2. node mark.mjs local
+B3. node mark.mjs cli
+B4. node mark.mjs none
+
+すべて終わったら、手順ごとに「成功 / 拒否 / エラー」と、返ってきたメッセージを 1 行ずつ報告してください。

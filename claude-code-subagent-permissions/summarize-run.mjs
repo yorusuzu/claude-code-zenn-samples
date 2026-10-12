@@ -8,8 +8,10 @@
 //   5. permission_denials（全 result の合計）
 //   6. 結果イベント（複数出ることがある。エラー、ターン数、累積の費用）
 //   7. hook イベント（--include-hook-events を付けた場合）
+//   8. 「未信頼のフォルダで allow を使わない」警告が、stream-json（標準出力）のどのイベントに出ているか
+//   9. --stderr <ファイル> を付けると、標準エラー出力の内容（置換済み）と、同じ警告の有無
 // 出力に出る本名・ホームのパス・一時ディレクトリ・セッション ID は置換する。
-// 使い方: node summarize-run.mjs <run.jsonl | ->
+// 使い方: node summarize-run.mjs <run.jsonl | -> [--stderr <run.stderr>]
 import { readFileSync } from "node:fs";
 import { homedir, tmpdir, userInfo } from "node:os";
 
@@ -76,9 +78,23 @@ function resultText(block) {
   return JSON.stringify(c ?? "");
 }
 
+// 警告の検索に使う語（警告文の一部。版で文言が変わる可能性がある）
+const WARNING_RE = /permissions\.allow|not been trusted|untrusted|workspace trust/i;
+
+function parseArgs(argv) {
+  const out = { file: null, stderr: null };
+  for (let i = 0; i < argv.length; i++) {
+    if (argv[i] === "--stderr") out.stderr = argv[++i];
+    else if (!out.file) out.file = argv[i];
+    else throw new Error(`知らない引数: ${argv[i]}`);
+  }
+  return out;
+}
+
 function main() {
-  const file = process.argv[2];
-  if (!file) throw new Error("使い方: node summarize-run.mjs <run.jsonl | ->");
+  const args = parseArgs(process.argv.slice(2));
+  const file = args.file;
+  if (!file) throw new Error("使い方: node summarize-run.mjs <run.jsonl | -> [--stderr <run.stderr>]");
   const { events, bad } = readLines(file);
   console.log(`イベント数: ${events.length}（JSON として読めなかった行: ${bad}）`);
 
@@ -193,6 +209,26 @@ function main() {
     byHook.set(key, (byHook.get(key) ?? 0) + 1);
   }
   for (const [k, v] of [...byHook].sort()) console.log(`- ${cell(k, 120)}: ${v}`);
+
+  // 8. 警告が stream-json に出ているか（イベントを JSON 文字列に戻して検索する。
+  //    プロンプトや返答に同じ語が入っていても当たるので、種類と先頭を見て判断する）
+  console.log(`\n## 警告の語（${WARNING_RE.source}）を含む stream-json のイベント`);
+  const hits = events.filter((e) => WARNING_RE.test(JSON.stringify(e)));
+  if (hits.length === 0) console.log("なし");
+  for (const e of hits) {
+    const text = JSON.stringify(e);
+    const at = text.search(WARNING_RE);
+    console.log(`- ${e.type}${e.subtype ? "/" + e.subtype : ""}: ...${clip(text.slice(Math.max(0, at - 60), at + 140), 220)}`);
+  }
+
+  // 9. 標準エラー出力
+  if (args.stderr) {
+    const text = readFileSync(args.stderr, "utf8");
+    const lines = text.split(/\r?\n/).filter((l) => l.trim());
+    console.log(`\n## 標準エラー出力（${lines.length} 行、置換済み）`);
+    for (const l of lines) console.log(`- ${clip(l, 300)}`);
+    console.log(`\n警告の語を含む行: ${lines.filter((l) => WARNING_RE.test(l)).length}`);
+  }
 }
 
 try {

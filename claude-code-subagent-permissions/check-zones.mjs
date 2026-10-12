@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // check-zones.mjs
 // zone（<dir>/zones/<名前>/）ごとに、ファイルが実際にできたかを表示する。これが「正解の根拠」の第 1 位。
-// --run a1|a2 を付けると、公式ドキュメントや公開済みの記述から見込まれる結果（期待）と並べて表示する。
+// --run a1|a2|x1 を付けると、公式ドキュメントや公開済みの記述から見込まれる結果（期待）と並べて表示する。
 //   期待 "あり" / "なし" / "不明"（公式に記載がない、または版による）
-// 使い方: node check-zones.mjs <検証用ディレクトリ> [--run a1|a2] [--json]
+// 使い方: node check-zones.mjs <検証用ディレクトリ> [--run a1|a2|x1] [--json]
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 
@@ -48,6 +48,17 @@ const EXPECT = {
     ["a9-projallow", "parent.txt", "なし", "A-9b", "未信頼フォルダの -p ではプロジェクト settings の allow は使われない（公式）"],
     ["a9-projallow", "sub-t-allow.txt", "なし", "A-9b", "同上（サブエージェント）"],
   ],
+  // X-1: 未信頼のフォルダの -p、親が default、サブエージェントなし
+  x1: [
+    ["x-proj", "write.txt", "なし", "X-1 W1", "settings.json の Edit(...) allow は使われない（公式。A-9b の再確認）"],
+    ["x-proj", "bash-mark.txt", "なし", "X-1 B1", "settings.json の Bash(...) allow も使われないはず（allow 全体が対象）"],
+    ["x-local", "write.txt", "不明", "X-1 W2", "settings.local.json の Edit(...) allow が使われるか（未確認）"],
+    ["x-local", "bash-mark.txt", "不明", "X-1 B2", "settings.local.json の Bash(...) allow が使われるか（未確認）"],
+    ["x-cli", "write.txt", "あり", "X-1 W3", "--allowedTools の Edit(...) は効く（陽性対照）"],
+    ["x-cli", "bash-mark.txt", "あり", "X-1 B3", "--allowedTools の Bash(...) は効く（陽性対照）"],
+    ["x-none", "write.txt", "なし", "X-1 W4", "許可がなければ default の -p では書けない（陰性対照）"],
+    ["x-none", "bash-mark.txt", "なし", "X-1 B4", "許可がなければ node は実行されない（陰性対照）"],
+  ],
 };
 
 function parseArgs(argv) {
@@ -63,8 +74,8 @@ function parseArgs(argv) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  if (!args.dir) throw new Error("使い方: node check-zones.mjs <検証用ディレクトリ> [--run a1|a2] [--json]");
-  if (args.run && !EXPECT[args.run]) throw new Error("--run には a1 か a2 を指定してください");
+  if (!args.dir) throw new Error("使い方: node check-zones.mjs <検証用ディレクトリ> [--run a1|a2|x1] [--json]");
+  if (args.run && !EXPECT[args.run]) throw new Error("--run には a1、a2、x1 のどれかを指定してください");
   const root = resolve(args.dir);
   const zonesDir = join(root, "zones");
   if (!existsSync(zonesDir)) throw new Error("zones/ が見つかりません");

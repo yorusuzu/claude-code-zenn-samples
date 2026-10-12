@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 // setup-lab.mjs
 // 使い捨ての検証用ディレクトリ（os.tmpdir() 以下）を作る。
-//   - lab/.claude/agents/t-*.md  を  <dir>/.claude/agents/ にコピー
+//   - lab/.claude/agents/t-*.md  を  <dir>/.claude/agents/ にコピー（a1、a2 のみ）
 //   - lab/.claude/settings.<run>.json を <dir>/.claude/settings.json としてコピー
-//   - lab/hooks/*.mjs を <dir>/hooks/ にコピー
+//   - lab/.claude/settings.<run>.local.json があれば <dir>/.claude/settings.local.json としてコピー（x1）
+//   - lab/hooks/*.mjs を <dir>/hooks/ にコピー（a1、a2 のみ）
+//   - lab/tools/mark.mjs を <dir>/mark.mjs としてコピー（x1 のみ）
 //   - lab/prompts/<run>.txt を <dir>/prompt.txt としてコピー
 //   - zones/<名前>/ と logs/ を作り、git init する
 // モデルは呼ばない。実行コマンドは表示するだけで、実行はしない。
 //
 // 使い方:
-//   node setup-lab.mjs --run a1|a2 [--dir <パス>] [--force]
+//   node setup-lab.mjs --run a1|a2|x1 [--dir <パス>] [--force]
 //   --dir は os.tmpdir() の下だけ許可（このリポジトリの CLAUDE.md や .claude/agents/ が混ざらないようにするため）
 import { cpSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
@@ -23,7 +25,11 @@ const lab = join(here, "lab");
 const ZONES = {
   a1: ["a0-allow", "a1-readonly", "a2-disallow", "a3-deny", "a3w-deny", "a4-cli", "a5-plan", "a6-nest", "a7-bash", "a8-hook"],
   a2: ["a0-allow", "a5-plan", "a5b-noallow", "a6-nest", "a7-bash", "a7n-bash", "a9-projallow"],
+  // x1: 未信頼のフォルダの -p で、settings.json / settings.local.json / --allowedTools の allow を比べる（サブエージェントは使わない）
+  x1: ["x-proj", "x-local", "x-cli", "x-none"],
 };
+// サブエージェントの定義と hook を使う実行
+const USES_AGENTS = new Set(["a1", "a2"]);
 
 const COMMON =
   "--model haiku --setting-sources project,local --no-session-persistence --strict-mcp-config " +
@@ -35,6 +41,9 @@ const COMMANDS = {
   a2:
     `claude -p ${COMMON} --permission-mode default ` +
     `--allowedTools "Edit(/zones/a0-allow/**)" "Edit(/zones/a5-plan/**)" "Edit(/zones/a6-nest/**)" "Edit(/zones/a7-bash/**)" "Bash(echo *)" < prompt.txt > run-a2.jsonl 2> run-a2.stderr`,
+  x1:
+    `claude -p ${COMMON} --permission-mode default ` +
+    `--allowedTools "Edit(/zones/x-cli/**)" "Bash(node mark.mjs cli)" < prompt.txt > run-x1.jsonl 2> run-x1.stderr`,
 };
 
 function parseArgs(argv) {
@@ -55,7 +64,7 @@ function isInside(parent, child) {
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
-  if (!ZONES[args.run]) throw new Error("--run には a1 か a2 を指定してください");
+  if (!ZONES[args.run]) throw new Error("--run には a1、a2、x1 のどれかを指定してください");
 
   const dir = resolve(args.dir ?? join(tmpdir(), `claude-subagent-lab-${args.run}`));
   if (!isInside(tmpdir(), dir)) throw new Error(`${dir} は os.tmpdir() の外です。tmpdir の下を指定してください`);
@@ -64,12 +73,19 @@ function main() {
     rmSync(dir, { recursive: true, force: true });
   }
 
-  mkdirSync(join(dir, ".claude", "agents"), { recursive: true });
-  for (const f of readdirSync(join(lab, ".claude", "agents"))) {
-    if (f.startsWith("t-") && f.endsWith(".md")) cpSync(join(lab, ".claude", "agents", f), join(dir, ".claude", "agents", f));
+  mkdirSync(join(dir, ".claude"), { recursive: true });
+  if (USES_AGENTS.has(args.run)) {
+    mkdirSync(join(dir, ".claude", "agents"), { recursive: true });
+    for (const f of readdirSync(join(lab, ".claude", "agents"))) {
+      if (f.startsWith("t-") && f.endsWith(".md")) cpSync(join(lab, ".claude", "agents", f), join(dir, ".claude", "agents", f));
+    }
+    cpSync(join(lab, "hooks"), join(dir, "hooks"), { recursive: true });
+  } else {
+    cpSync(join(lab, "tools", "mark.mjs"), join(dir, "mark.mjs"));
   }
   cpSync(join(lab, ".claude", `settings.${args.run}.json`), join(dir, ".claude", "settings.json"));
-  cpSync(join(lab, "hooks"), join(dir, "hooks"), { recursive: true });
+  const local = join(lab, ".claude", `settings.${args.run}.local.json`);
+  if (existsSync(local)) cpSync(local, join(dir, ".claude", "settings.local.json"));
   cpSync(join(lab, "prompts", `${args.run}.txt`), join(dir, "prompt.txt"));
   mkdirSync(join(dir, "logs"), { recursive: true });
   for (const z of ZONES[args.run]) {
@@ -87,7 +103,7 @@ function main() {
   console.log("");
   console.log("実行後:");
   console.log(`  node check-zones.mjs "${dir}" --run ${args.run}`);
-  console.log(`  node summarize-run.mjs "${join(dir, `run-${args.run}.jsonl`)}"`);
+  console.log(`  node summarize-run.mjs "${join(dir, `run-${args.run}.jsonl`)}" --stderr "${join(dir, `run-${args.run}.stderr`)}"`);
 }
 
 try {

@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Edit(/zones/x-proj/**)",
+      "Bash(node mark.mjs proj)"
+    ]
+  }
+}

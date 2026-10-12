@@ -16,14 +16,16 @@
 | ファイル | 役割 |
 |---|---|
 | `setup-lab.mjs` | 使い捨ての検証用ディレクトリを作り、実行コマンドを表示する（モデルは呼ばない）。検証用の定義、設定、hook、手順書をコピーする |
-| `summarize-run.mjs` | `claude -p --output-format stream-json` の出力を表にする（モデルは呼ばない）。`result` が複数出ても、拒否の数を合計する |
+| `summarize-run.mjs` | `claude -p --output-format stream-json` の出力を表にする（モデルは呼ばない）。`result` が複数出ても、拒否の数を合計する。`--stderr <ファイル>` を付けると、標準エラー出力（置換済み）と、未信頼のフォルダの警告が stream-json と stderr のどちらに出たかも表示する |
 | `check-zones.mjs` | ゾーンごとに、ファイルができたかを一覧にする（モデルは呼ばない） |
 | `lab/.claude/agents/t-*.md` | 検証用のサブエージェント定義 11 個（すべて `model: haiku`）。`setup-lab.mjs` が検証用ディレクトリにコピーする |
 | `lab/.claude/settings.a1.json`, `settings.a2.json` | 実行 A-1、A-2 のプロジェクト設定 |
+| `lab/.claude/settings.x1.json`, `settings.x1.local.json` | 追加の確認 X-1 の設定。検証用ディレクトリの `.claude/settings.json` と `.claude/settings.local.json` になる |
+| `lab/tools/mark.mjs` | X-1 用。`node mark.mjs <proj\|local\|cli\|none>` で `zones/x-<名前>/bash-mark.txt` を書く。`Bash(...)` の許可だけを確かめるためのスクリプト |
 | `lab/hooks/deny-zone.mjs` | PreToolUse の hook。全ツール呼び出しを記録し、特定ゾーンへの Write / Edit を exit 2 で止める |
 | `lab/hooks/log-subagent.mjs` | SubagentStart / SubagentStop のログ（`../claude-code-subagent-hook-log/` と同じ内容のコピー） |
 | `lab/hooks/probe-env.mjs` | hook の環境の確認用。環境変数の「名前」だけ（値は記録しない）と、シェルの手がかりを記録する |
-| `lab/prompts/a1.txt`, `a2.txt` | 親に渡す手順書（番号つき・やり直し禁止） |
+| `lab/prompts/a1.txt`, `a2.txt`, `x1.txt` | 親に渡す手順書（番号つき・やり直し禁止） |
 | `LICENSES.md` | 依存（なし）と、このサンプルのライセンス（MIT） |
 
 ## セットアップ
@@ -32,7 +34,8 @@
 
 注意:
 
-- 実行はモデルを呼びます（haiku を指定しています）。2.1.293 では、実行 A-1 が約 0.029 ドル、A-2 が約 0.030 ドルでした（`--max-budget-usd 2` で上限をかけています）。
+- 実行はモデルを呼びます（haiku を指定しています）。2.1.293 では、実行 A-1 が約 0.029 ドル、A-2 が約 0.030 ドル、X-1 が約 0.005 ドルでした（`--max-budget-usd 2` で上限をかけています）。
+- Windows の Git Bash では、`claude` が PATH に無いことがあります（この記録の環境では `~/.local/bin` にありました）。その場合は、そのシェルでだけ PATH に足してください。
 - 検証用ディレクトリは必ず `os.tmpdir()` の下に作ります（`setup-lab.mjs` はそれ以外の場所を拒否します）。自分のプロジェクトの `CLAUDE.md` や `.claude/agents/` が混ざると、結果が変わります。
 - `--setting-sources project,local` は、ユーザーレベルの設定（`~/.claude/settings.json`）を読み込まなくします。ただし、ユーザーレベルの `CLAUDE.md` や自動メモリまで遮断するとは限りません。それらが結果に影響しうることを承知のうえで使ってください（この記録では、ユーザーレベルのエージェント定義が出ていないことだけ、init の `agents` で確認しました）。
 - `--permission-mode bypassPermissions` や `--dangerously-skip-permissions` は使いません。
@@ -75,6 +78,17 @@ node check-zones.mjs <検証用ディレクトリ> --run a2
 
 A-2 の stderr には、プロジェクトの `permissions.allow` を使わなかった警告が出ます（A-9b の確認）。
 
+追加の確認 X-1（未信頼のフォルダの `-p` で、allow の置き場所を比べる。サブエージェントは使わない）も同様です。`.claude/settings.json`、`.claude/settings.local.json`、`--allowedTools` に、それぞれ別のゾーンの `Edit(...)` と `Bash(node mark.mjs <名前>)` の許可を書いています。標準出力と標準エラー出力は別のファイルに保存し、`summarize-run.mjs` に両方を渡します。
+
+```
+node setup-lab.mjs --run x1
+claude -p --model haiku --setting-sources project,local --no-session-persistence --strict-mcp-config --forward-subagent-text --output-format stream-json --verbose --include-hook-events --max-budget-usd 2 --permission-mode default --allowedTools "Edit(/zones/x-cli/**)" "Bash(node mark.mjs cli)" < prompt.txt > run-x1.jsonl 2> run-x1.stderr
+node check-zones.mjs <検証用ディレクトリ> --run x1
+node summarize-run.mjs <検証用ディレクトリ>/run-x1.jsonl --stderr <検証用ディレクトリ>/run-x1.stderr
+```
+
+`setup-lab.mjs` は検証用ディレクトリで `git init` だけをします（`git add` やコミットはしません）。そのため、X-1 の `settings.local.json` は「git リポジトリの中で未追跡」の状態です。結果はこの状態に依存する可能性があります（VERIFIED.md の X-1 の節）。
+
 終わったら、検証用ディレクトリを削除します。ログには、ユーザー名を含むパスが入ります。記事や公開リポジトリには、生のログを載せないでください（`summarize-run.mjs` の出力は、名前・パス・セッション ID を置換します）。
 
 `--run` ごとのゾーンは次のとおりです。
@@ -83,6 +97,7 @@ A-2 の stderr には、プロジェクトの `permissions.allow` を使わな�
 |---|---|
 | a1 | a0-allow, a1-readonly, a2-disallow, a3-deny, a3w-deny, a4-cli, a5-plan, a6-nest, a7-bash, a8-hook |
 | a2 | a0-allow, a5-plan, a5b-noallow, a6-nest, a7-bash, a7n-bash, a9-projallow |
+| x1 | x-proj（settings.json）, x-local（settings.local.json）, x-cli（--allowedTools）, x-none（許可なし） |
 
 ## 検証したこと（2.1.293 での結果の要約。詳しくは VERIFIED.md）
 
@@ -95,6 +110,7 @@ A-2 の stderr には、プロジェクトの `permissions.allow` を使わな�
 - `permissionMode: plan` は、親が `default` のときは効き、親が `acceptEdits` のときは効かなかった。
 - サブエージェントは孫を起動できた（`tools` に `Agent` を書いた定義と、`tools` を省略した定義）。`tools` に `Agent` を書かない定義と、`disallowedTools: Agent` の定義は、孫を起動しなかった（`Agent` ツールが渡されない）。証拠の強さは違う。`disallowedTools: Agent` の定義（t-nest）は、ToolSearch を呼んで見つからなかったという実行記録がある。`tools` に `Agent` を書かない定義（t-nest-b）は、モデルの自己申告が中心で、陽性対照（孫が書けた別の定義）で補強しているだけ。深さ 2 までの確認で、「最大 3 階層」の上限そのものは試していない。
 - 未信頼のフォルダの `claude -p` では、プロジェクトの `permissions.allow` は使われなかった。
+- 追加の確認 X-1（2026-10-12 JST、1 回）: 未信頼のフォルダの `claude -p` で、`.claude/settings.json` の allow（`Edit(...)`、`Bash(...)` とも）は使われず、`.claude/settings.local.json` の allow は使われた（git リポジトリの中で未追跡の条件。理由は確かめていない）。`--allowedTools` は効いた。警告は stderr だけに出て、stream-json には出なかった。stream-json のツール結果と `permission_denials` は、「allow が無視された」場合と「allow を書いていない」場合で同じ文面だった（stderr を捨てると、原因がわからない）。信頼したフォルダでの挙動は確認していない。
 
 ## 制約
 
