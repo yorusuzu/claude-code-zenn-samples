@@ -1,0 +1,7 @@
+{"type":"system","subtype":"init","claude_code_version":"0.0.0-synthetic","model":"synthetic","permissionMode":"default","agents":["general-purpose","s-ok"],"tools":["Task","Read"]}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_synth_1","name":"Task","input":{"description":"synthetic","prompt":"synthetic","subagent_type":"s-ok"}}]},"parent_tool_use_id":null}
+{"type":"system","subtype":"task_started","task_id":"synth"}
+{"type":"assistant","message":{"role":"assistant","content":[{"type":"tool_use","id":"toolu_synth_2","name":"Read","input":{"file_path":"fixtures/token.txt"}}]},"parent_tool_use_id":"toolu_synth_1"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_synth_2","is_error":false,"content":"1\tAIKOTOBA-SUZURAN-4719"}]},"parent_tool_use_id":"toolu_synth_1"}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_synth_1","content":[{"type":"text","text":"AIKOTOBA-SUZURAN-4719"}]}]},"parent_tool_use_id":null}
+{"type":"result","subtype":"success","is_error":false,"num_turns":2,"total_cost_usd":0,"api_error_status":null,"terminal_reason":"completed","permission_denials":[],"subagent_stats":{"spawned":1,"completed":1,"failed":0},"result":"synthetic"}

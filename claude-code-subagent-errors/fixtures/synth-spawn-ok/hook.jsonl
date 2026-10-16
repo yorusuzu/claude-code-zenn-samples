@@ -1,0 +1,2 @@
+{"ts":"2000-01-01T00:00:00.000Z","event":"SubagentStart","agent_type":"s-ok","keys":["synthetic"]}
+{"ts":"2000-01-01T00:00:01.000Z","event":"SubagentStop","agent_type":"s-ok","keys":["synthetic"]}

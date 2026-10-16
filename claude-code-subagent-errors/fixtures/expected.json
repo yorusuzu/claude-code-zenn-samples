@@ -1,0 +1,218 @@
+{
+ "_note": "check-fixtures.mjs が extract-spawn.mjs の出力と比べる値（部分一致）。real- は実際の実行の出力を置換・削減したもの、synth- は extract-spawn.mjs の分岐を確かめるために手で書いた合成データ（イベントの形は想定で、実測ではない。記事の根拠にしない） noSubagentType は checkNoSubagentType()（(d) の前提の確認）の値。 verdict は extractSpawn() の判定。real-sa1 / real-sb1 / real-sd3 / real-sf2 は 2026-10-16 の Sa1 / Sb1 / Sd3 / Sf2 の実際の出力を、init・task_*・hook_*・tool_use・tool_result・text・result の判定に使う項目だけに削り、toolu_ と agentId を <toolu-N> / <agent-N> に置き換え、redact.mjs を通して scanResidue() で残りがないことを確かめたもの。thinking と usage は削除。",
+ "real-s0-oauth-refresh-failed": {
+  "started": false,
+  "agentCalls": [],
+  "agentResults": [],
+  "result": {
+   "subtype": "success",
+   "is_error": true,
+   "num_turns": 1,
+   "total_cost_usd": 0,
+   "terminal_reason": "api_error"
+  },
+  "init": {
+   "version": "2.1.293"
+  },
+  "noSubagentType": "不成立（Agent ツールの呼び出しがない）",
+  "verdict": "Agent の呼び出しなし"
+ },
+ "synth-spawn-ok": {
+  "started": true,
+  "agentCalls": [
+   {
+    "tool": "Task",
+    "subagent_type": "s-ok"
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": false,
+    "tokenSeen": true
+   }
+  ],
+  "subagentToolUses": [
+   "Read"
+  ],
+  "result": {
+   "is_error": false
+  },
+  "verdict": "起動した"
+ },
+ "synth-spawn-refused": {
+  "started": false,
+  "agentCalls": [
+   {
+    "tool": "Task",
+    "subagent_type": "s-x"
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": true,
+    "tokenSeen": false,
+    "text": "<synthetic error text>"
+   }
+  ],
+  "result": {
+   "is_error": false
+  },
+  "noSubagentType": "不成立（tool_use の input に subagent_type が入っていた）",
+  "verdict": "呼び出し時に拒否（Agent の tool_result が is_error）"
+ },
+ "synth-no-type-refused": {
+  "started": false,
+  "agentCalls": [
+   {
+    "tool": "Task",
+    "subagent_type": "(なし)",
+    "inputKeys": [
+     "description",
+     "prompt"
+    ]
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": true,
+    "text": "<synthetic error text>"
+   }
+  ],
+  "noSubagentType": "成立（すべての Agent 呼び出しで subagent_type なし）",
+  "verdict": "呼び出し時に拒否（Agent の tool_result が is_error）"
+ },
+ "real-sa1-started-no-tool-calls": {
+  "started": true,
+  "verdict": "起動した（サブエージェントのツール呼び出しなし）",
+  "agentCalls": [
+   {
+    "tool": "Agent",
+    "subagent_type": "s-tools-blank"
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": false,
+    "tokenSeen": false
+   }
+  ],
+  "subagentToolUses": [],
+  "taskFailures": [],
+  "result": {
+   "is_error": false,
+   "terminal_reason": "completed",
+   "subagent_stats": {
+    "spawned": 1,
+    "completed": 1,
+    "failed": 0
+   }
+  },
+  "init": {
+   "version": "2.1.293"
+  }
+ },
+ "real-sb1-zero-tools-after-launch": {
+  "started": true,
+  "verdict": "起動処理の途中で拒否（task が failed、サブエージェントのメッセージなし）",
+  "agentCalls": [
+   {
+    "tool": "Agent",
+    "subagent_type": "s-tools-bogus"
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": false,
+    "tokenSeen": false
+   }
+  ],
+  "subagentMessages": 0,
+  "taskFailures": [
+   {
+    "source": "task_updated.patch.error",
+    "text": "Agent 's-tools-bogus' would be spawned with zero tools — refusing. Its tools list resolved to nothing: unrecognized [NoSuchTool, AnotherFake]. Fix the agent's tools frontmatter or pass a different subagent_type."
+   },
+   {
+    "source": "task_notification.summary",
+    "text": "Agent 's-tools-bogus' would be spawned with zero tools — refusing. Its tools list resolved to nothing: unrecognized [NoSuchTool, AnotherFake]. Fix the agent's tools frontmatter or pass a different subagent_type."
+   }
+  ],
+  "result": {
+   "is_error": false,
+   "subagent_stats": {
+    "spawned": 1,
+    "completed": 0,
+    "failed": 1
+   }
+  }
+ },
+ "real-sd3-subagent-type-required": {
+  "started": false,
+  "verdict": "呼び出し時に拒否（Agent の tool_result が is_error）",
+  "agentCalls": [
+   {
+    "tool": "Agent",
+    "subagent_type": "(なし)"
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": true,
+    "tokenSeen": false,
+    "text": "subagent_type is required: the general-purpose agent is not available in this session. Available agents: s-disallow-all, s-ok, s-tools-blank, s-tools-bogus, s-tools-emptylist, s-tools-emptystr, s-tools-lower, s-tools-mixed"
+   }
+  ],
+  "taskFailures": [],
+  "init": {
+   "agents": [
+    "s-disallow-all",
+    "s-ok",
+    "s-tools-blank",
+    "s-tools-bogus",
+    "s-tools-emptylist",
+    "s-tools-emptystr",
+    "s-tools-lower",
+    "s-tools-mixed"
+   ]
+  },
+  "result": {
+   "subagent_stats": {
+    "spawned": 0
+   }
+  },
+  "noSubagentType": "成立（すべての Agent 呼び出しで subagent_type なし）"
+ },
+ "real-sf2-started": {
+  "started": true,
+  "verdict": "起動した",
+  "agentCalls": [
+   {
+    "tool": "Agent",
+    "subagent_type": "s-ok"
+   }
+  ],
+  "agentResults": [
+   {
+    "is_error": false,
+    "tokenSeen": false
+   }
+  ],
+  "subagentToolUses": [
+   "Read"
+  ],
+  "subagentToolResults": [
+   {
+    "is_error": false,
+    "tokenSeen": true
+   }
+  ],
+  "taskFailures": [],
+  "result": {
+   "subagent_stats": {
+    "spawned": 1,
+    "completed": 1,
+    "failed": 0
+   }
+  }
+ }
+}
