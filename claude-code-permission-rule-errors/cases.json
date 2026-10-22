@@ -1,0 +1,1787 @@
+{
+  "_note": [
+    "expect は実測の前の仮説（plans/free-articles-5.md 6-4 節。14-2 節が優先）。結果を見てから書き換えない。",
+    "args の \"@名前\" は presets の配列に展開する（入れ子も展開）。{cwd} は作業ディレクトリ、{settingsFile} は settings.file を書いたファイル、{debugFile} はデバッグ出力の保存先に置き換える。",
+    "settings の中の文字列 \"$<ID>\" は rules.json の rule に置き換える。project は <cwd>/.claude/settings.json、local は <cwd>/.claude/settings.local.json、user は隔離した CLAUDE_CONFIG_DIR/settings.json、file は <作業>/cfgfile/<tag>.json に書く。{\"$raw\": \"...\"} は文字列をそのまま書く（壊れた JSON 用）。",
+    "phase が run-case.mjs の ACTIVE_PHASES にないケースは実行しない。W 群の kind・isolatedConfig・expectAuthError・timeoutSec の \"@W\" は wBranch で決まる（wBranchSettings）。",
+    "E3 の結果（VERIFIED.md の冒頭）: wBranch は doctor。W 群は claude doctor（CLAUDE_CONFIG_DIR を隔離、モデルなし）で見る。-p の認証エラーの経路（M3、M7）では 2.1.293 で警告が出なかった。モデルありに戻すときは wBranch を model にし、presets の \"@W\" を \"@W-if-model\" の中身に替える（user スコープの W19〜W21 は nomodelOnly で実行されない）。",
+    "kind: harness は claude を起動しない記録の仕組みの確認、nomodel はモデルを呼ばない想定の claude の起動（コストが付いたらモデル実行に数える）、model はモデルを呼ぶ実行。"
+  ],
+  "wBranch": "doctor",
+  "wBranchSettings": {
+    "doctor": {
+      "kind": "nomodel",
+      "isolatedConfig": true,
+      "expectAuthError": false,
+      "timeoutSec": 30
+    },
+    "nomodel": {
+      "kind": "nomodel",
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30
+    },
+    "model": {
+      "kind": "model",
+      "isolatedConfig": false,
+      "expectAuthError": false,
+      "timeoutSec": 120
+    }
+  },
+  "presets": {
+    "@base": [
+      "--setting-sources",
+      "project,local",
+      "--no-session-persistence",
+      "--strict-mcp-config",
+      "--permission-mode",
+      "default"
+    ],
+    "@model": [
+      "-p",
+      "--model",
+      "haiku",
+      "@base",
+      "--max-budget-usd",
+      "0.2"
+    ],
+    "@nomodel": [
+      "--model",
+      "haiku",
+      "--max-turns",
+      "1",
+      "--max-budget-usd",
+      "0.2",
+      "@base"
+    ],
+    "@W": [
+      "doctor"
+    ],
+    "@W-user": [
+      "doctor"
+    ],
+    "@W-if-model": [
+      "-p",
+      "--model",
+      "haiku",
+      "@base",
+      "--max-budget-usd",
+      "0.2",
+      "--max-turns",
+      "1",
+      "--output-format",
+      "stream-json",
+      "--verbose",
+      "x"
+    ]
+  },
+  "cases": [
+    {
+      "id": "N0a",
+      "group": "N",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "--version"
+      ],
+      "timeoutSec": 30,
+      "expect": "2.1.293（実行の前）"
+    },
+    {
+      "id": "N2",
+      "group": "N",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "--help"
+      ],
+      "timeoutSec": 30,
+      "expect": "--tools、--setting-sources、--debug / --debug-file、--bare、--settings の有無を確認する（計画 6-2 節の --help 確認）"
+    },
+    {
+      "id": "H0",
+      "group": "H",
+      "phase": "E3",
+      "kind": "harness",
+      "cmd": "node",
+      "args": [
+        "-e",
+        "process.exit(3)"
+      ],
+      "timeoutSec": 30,
+      "expect": "記録された終了コードが 3。stdout と stderr が別ファイル"
+    },
+    {
+      "id": "H1",
+      "group": "H",
+      "phase": "E3",
+      "kind": "harness",
+      "cmd": "node",
+      "args": [
+        "-e",
+        "console.error('x')"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 30,
+      "expect": "stderr 側にだけ x が入る。stdout は空。.claude/settings.json が書かれる"
+    },
+    {
+      "id": "M1",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "--version"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 30,
+      "expect": "警告は出ない（設定を読まないはず）"
+    },
+    {
+      "id": "M2a",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "doctor"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "対話端末が要る可能性。要るなら出力なし・即終了・ハングのどれか。出れば Malformed の警告（14-2 節 7 項: 第一経路）"
+    },
+    {
+      "id": "M2b",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "doctor"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$V0"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "M2a の対照（V0）。警告なし"
+    },
+    {
+      "id": "M3a",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "@nomodel",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "x"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "認証エラーで終わる。警告が認証エラーの前に出るかは不明（2.1.293 は 2.1.299 の修正より前）"
+    },
+    {
+      "id": "M3b",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "@nomodel",
+        "--output-format",
+        "text",
+        "x"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "M3a の text 出力版（14-2 節 7 項）。2.1.299 以降なら stderr に出る形。2.1.293 では不明"
+    },
+    {
+      "id": "M3c",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "@nomodel",
+        "--output-format",
+        "text",
+        "x"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$V0"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "M3b の対照（V0）。警告なし"
+    },
+    {
+      "id": "M4",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "@nomodel",
+        "--output-format",
+        "text",
+        "/doctor"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "受け付けられないか、スラッシュコマンドとして処理されるか。不明（P4）"
+    },
+    {
+      "id": "M7a",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "--bare",
+        "--settings",
+        "{settingsFile}",
+        "--model",
+        "haiku",
+        "--max-turns",
+        "1",
+        "--max-budget-usd",
+        "0.2",
+        "--no-session-persistence",
+        "--strict-mcp-config",
+        "--permission-mode",
+        "default",
+        "--output-format",
+        "text",
+        "x"
+      ],
+      "settings": {
+        "file": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "PM の追加依頼（E2 の Qiita の形。2.1.300 では認証エラーの前に stderr に警告）。2.1.293 では出ない可能性",
+      "_note": "計画 6-4 節にない追加ケース。M3 の候補"
+    },
+    {
+      "id": "M7b",
+      "group": "M",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "-p",
+        "--bare",
+        "--settings",
+        "{settingsFile}",
+        "--model",
+        "haiku",
+        "--max-turns",
+        "1",
+        "--max-budget-usd",
+        "0.2",
+        "--no-session-persistence",
+        "--strict-mcp-config",
+        "--permission-mode",
+        "default",
+        "--output-format",
+        "text",
+        "x"
+      ],
+      "settings": {
+        "file": {
+          "permissions": {
+            "deny": [
+              "$V0"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": true,
+      "expectAuthError": true,
+      "timeoutSec": 30,
+      "expect": "M7a の対照（V0）。警告なし",
+      "_note": "M7a の結果を見て、必要なときだけ実行する"
+    },
+    {
+      "id": "M5",
+      "group": "M",
+      "phase": "E3",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "@model",
+        "--max-turns",
+        "1",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "OK とだけ返して"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "警告が stderr に出る。stdout の init には出ない（推測）。2.1.293 では -p で黙っている可能性（14-2 節 7 項）"
+    },
+    {
+      "id": "M6",
+      "group": "M",
+      "phase": "E3",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "@model",
+        "--max-turns",
+        "1",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "--debug-file",
+        "{debugFile}",
+        "OK とだけ返して"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "デバッグ出力に警告が出るか（P5）"
+    },
+    {
+      "id": "N0b",
+      "group": "N",
+      "phase": "E3",
+      "kind": "nomodel",
+      "cmd": "claude",
+      "args": [
+        "--version"
+      ],
+      "timeoutSec": 30,
+      "expect": "2.1.293（実行の後）"
+    },
+    {
+      "id": "W01",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$V0"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "V0",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "警告が出ない基準"
+    },
+    {
+      "id": "W02",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$V1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "V1",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "末尾の :*（有効な同等形式。14-2 節 4 項）"
+    },
+    {
+      "id": "W03",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "括弧の閉じ忘れ"
+    },
+    {
+      "id": "W04",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B2"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B2",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "空の括弧"
+    },
+    {
+      "id": "W05",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B3"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B3",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "ツール名の小文字"
+    },
+    {
+      "id": "W06",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B4"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B4",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "ツール名の綴り違い（未知ツール名の警告を期待。14-2 節 6 項）"
+    },
+    {
+      "id": "W07",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B5"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B5",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "途中の :*。Malformed ではない別の警告。ルールは文字どおりに効く（14-2 節 3 項）"
+    },
+    {
+      "id": "W08",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B6"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B6",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "全角括弧"
+    },
+    {
+      "id": "W09",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B7"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B7",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "空文字列"
+    },
+    {
+      "id": "W10",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B8"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B8",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": true,
+      "nomodelOnly": false,
+      "expect": "余分な閉じ括弧"
+    },
+    {
+      "id": "W11",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B9"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B9",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "括弧付きの MCP ルール（スキップされる。14-2 節 5 項）"
+    },
+    {
+      "id": "W12",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "allow": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "project",
+      "list": "allow",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "allow の不正。未信頼の workspace の警告が混ざるかも記録"
+    },
+    {
+      "id": "W13",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "ask": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "project",
+      "list": "ask",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "ask の不正"
+    },
+    {
+      "id": "W14",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "allow": [
+              "$B3"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B3",
+      "place": "project",
+      "list": "allow",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "大文字小文字 × allow"
+    },
+    {
+      "id": "W15",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "ask": [
+              "$B3"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B3",
+      "place": "project",
+      "list": "ask",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "大文字小文字 × ask"
+    },
+    {
+      "id": "W16",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "local": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "local",
+      "list": "deny",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "置き場所の違い（local）"
+    },
+    {
+      "id": "W17",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "local": {
+          "permissions": {
+            "allow": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "local",
+      "list": "allow",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "同上"
+    },
+    {
+      "id": "W18",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "local": {
+          "permissions": {
+            "ask": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "local",
+      "list": "ask",
+      "inModelBranch": false,
+      "nomodelOnly": false,
+      "expect": "同上"
+    },
+    {
+      "id": "W19",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W-user"
+      ],
+      "settings": {
+        "user": {
+          "permissions": {
+            "deny": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "user",
+      "list": "deny",
+      "inModelBranch": false,
+      "nomodelOnly": true,
+      "expect": "user スコープ（隔離した CLAUDE_CONFIG_DIR。モデルなしの経路が成立したときだけ）"
+    },
+    {
+      "id": "W20",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W-user"
+      ],
+      "settings": {
+        "user": {
+          "permissions": {
+            "allow": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "user",
+      "list": "allow",
+      "inModelBranch": false,
+      "nomodelOnly": true,
+      "expect": "同上"
+    },
+    {
+      "id": "W21",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W-user"
+      ],
+      "settings": {
+        "user": {
+          "permissions": {
+            "ask": [
+              "$B1"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1",
+      "place": "user",
+      "list": "ask",
+      "inModelBranch": false,
+      "nomodelOnly": true,
+      "expect": "同上"
+    },
+    {
+      "id": "W22",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1",
+              "$B3"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1+B3",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": false,
+      "expect": "警告が 1 ルールにつき 1 回か、まとめて 1 回か"
+    },
+    {
+      "id": "W23",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B1",
+              "$V0"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B1+V0",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": false,
+      "expect": "有効なルールの隣でも警告は B1 だけか"
+    },
+    {
+      "id": "W24",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": "$V0"
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "V0（文字列）",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": false,
+      "expect": "ルール単位の不正と、設定ファイル全体の型の不正の違い（別の文言が出るか）"
+    },
+    {
+      "id": "W25",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "$raw": "{\n  \"permissions\": {\n    \"deny\": [\"Bash(npm run *)\",]\n  }\n}\n"
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "壊れた JSON（末尾カンマ）",
+      "place": "project",
+      "list": "-",
+      "inModelBranch": false,
+      "expect": "設定ファイル全体が読めないときの出方。ルールの警告とは別物"
+    },
+    {
+      "id": "W26",
+      "group": "W",
+      "phase": "E4",
+      "kind": "@W",
+      "cmd": "claude",
+      "args": [
+        "@W"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$B10"
+            ]
+          }
+        }
+      },
+      "isolatedConfig": "@W",
+      "expectAuthError": "@W",
+      "timeoutSec": "@W",
+      "rule": "B10",
+      "place": "project",
+      "list": "deny",
+      "inModelBranch": "要 PM 判断（14-2 節 2 項で追加。6-4 節の 8 ケースの絞り込みより後）",
+      "expect": "docs の例そのまま。Malformed の警告（docs の文言）"
+    },
+    {
+      "id": "D01",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": null,
+      "timeoutSec": 120,
+      "expect": "合言葉が tool_result に入る（陽性対照。読めなければ D 群を止める）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D02",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RV-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "is_error で拒否される。合言葉は入らない（対照）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D03",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB1-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。仮説は、スキップされて合言葉が入る（効かない）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D04",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB3-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明（小文字）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D05",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB4-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明（綴り違い）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D06",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB6-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明（全角括弧）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D07",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "3",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt と ./zone/secret-b.txt を、Read ツールで 1 つずつ読み、それぞれの内容をそのまま引用して返して。拒否されたものは、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB1-a",
+              "$RV-b"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。a は読めて b は拒否、が「個々のスキップ」の姿",
+      "markers": [
+        "a",
+        "b"
+      ]
+    },
+    {
+      "id": "D08",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-b.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$XB5",
+              "$RV-b"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "b は拒否される。B5 は文字どおりのルールとして効き、ファイル全体は無効にならない（14-2 節 3 項）",
+      "markers": [
+        "b"
+      ]
+    },
+    {
+      "id": "D09",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Bash",
+        "--allowedTools",
+        "Bash(node -p *)",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "Bash ツールで node -p \"6*7\" を 1 回だけ実行し、出力をそのまま返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$XV0"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "deny が優先されて拒否される（対照）",
+      "markers": [
+        "42"
+      ]
+    },
+    {
+      "id": "D10",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Bash",
+        "--allowedTools",
+        "Bash(node -p *)",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "Bash ツールで node -p \"6*7\" を 1 回だけ実行し、出力をそのまま返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$XB1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。実行されて 42 が出れば、不正な deny が効いていない",
+      "markers": [
+        "42"
+      ]
+    },
+    {
+      "id": "D11",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Bash",
+        "--allowedTools",
+        "Bash(node -p *)",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "Bash ツールで node -p \"6*7\" を 1 回だけ実行し、出力をそのまま返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$XV1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "拒否される（14-2 節 4 項: 末尾の :* は有効な同等形式）",
+      "markers": [
+        "42"
+      ]
+    },
+    {
+      "id": "D12",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "local": {
+          "permissions": {
+            "deny": [
+              "$RB1-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "D03 と同じ（置き場所による違いがなければ）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D13",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "ask": [
+              "$RB1-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。B1 がスキップされれば読める",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D14",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "ask": [
+              "$RV-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "-p では確認に答えられず、拒否または失敗（対照）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D15",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Bash",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "Bash ツールで node -p \"6*7\" を 1 回だけ実行し、出力をそのまま返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "local": {
+          "permissions": {
+            "allow": [
+              "$XV0"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "実行されて 42 が出る（local の allow は信頼に影響されない、という記事Xの結果から）",
+      "markers": [
+        "42"
+      ]
+    },
+    {
+      "id": "D16",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Bash",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "Bash ツールで node -p \"6*7\" を 1 回だけ実行し、出力をそのまま返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "local": {
+          "permissions": {
+            "allow": [
+              "$XB1"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。スキップなら許可されず、-p では実行されない",
+      "markers": [
+        "42"
+      ]
+    },
+    {
+      "id": "D17",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-c.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB10-c"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。仮説は、スキップされて合言葉が入る（14-2 節 2 項で追加）",
+      "markers": [
+        "c"
+      ]
+    },
+    {
+      "id": "D18",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "permissions": {
+            "deny": [
+              "$RB8-a"
+            ]
+          }
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。仮説は、中身が ./zone/secret-a.txt) と読まれて一致せず、合言葉が入る（14-5 節。doctor は B8 を報告しない、E4）",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "id": "D19",
+      "group": "D",
+      "phase": "E5",
+      "kind": "model",
+      "cmd": "claude",
+      "args": [
+        "--tools",
+        "Read",
+        "@model",
+        "--max-turns",
+        "2",
+        "--output-format",
+        "stream-json",
+        "--verbose",
+        "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。"
+      ],
+      "settings": {
+        "project": {
+          "$raw": "{\n  \"permissions\": {\n    \"deny\": [\"Read(./zone/secret-a.txt)\",]\n  }\n}\n"
+        }
+      },
+      "timeoutSec": 120,
+      "expect": "不明。仮説は、JSON として読めずファイル全体が使われないため、有効な deny も効かず合言葉が入る（14-5 節。A8 の Error）",
+      "markers": [
+        "a"
+      ]
+    }
+  ]
+}

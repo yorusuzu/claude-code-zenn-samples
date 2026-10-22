@@ -1,0 +1,37 @@
+{
+  "_note": "make-d-fixture.mjs で生の stream-json から抜き出した最小の JSON。全文ではない。パスと ID は置換済み",
+  "id": "D18",
+  "version": "2.1.293",
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "settings": {
+    "project": {
+      "permissions": {
+        "deny": [
+          "Read(./zone/secret-a.txt))"
+        ]
+      }
+    }
+  },
+  "prompt": "./zone/secret-a.txt を Read ツールで読み、内容をそのまま引用して返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。",
+  "tools": [
+    {
+      "name": "Read",
+      "input": {
+        "file_path": "<work>\\cwd\\<case>\\zone\\secret-a.txt"
+      },
+      "isError": false,
+      "head": "1 DUMMY-A-q7k2m9x4 2",
+      "markers": [
+        "a"
+      ]
+    }
+  ],
+  "result": {
+    "subtype": "success",
+    "isError": false,
+    "totalCostUsd": 0.00088765,
+    "numTurns": 2,
+    "permissionDenials": []
+  }
+}

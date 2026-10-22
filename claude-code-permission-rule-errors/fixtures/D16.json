@@ -1,0 +1,38 @@
+{
+  "_note": "make-d-fixture.mjs で生の stream-json から抜き出した最小の JSON。全文ではない。パスと ID は置換済み",
+  "id": "D16",
+  "version": "2.1.293",
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "settings": {
+    "local": {
+      "permissions": {
+        "allow": [
+          "Bash(node -p *"
+        ]
+      }
+    }
+  },
+  "prompt": "Bash ツールで node -p \"6*7\" を 1 回だけ実行し、出力をそのまま返して。拒否されたら、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。",
+  "tools": [
+    {
+      "name": "Bash",
+      "input": {
+        "command": "node -p \"6*7\"",
+        "description": "Run node -p \"6*7\" once and return output"
+      },
+      "isError": true,
+      "head": "This command requires approval",
+      "markers": []
+    }
+  ],
+  "result": {
+    "subtype": "success",
+    "isError": false,
+    "totalCostUsd": 0.0009383900000000001,
+    "numTurns": 2,
+    "permissionDenials": [
+      "Bash"
+    ]
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "_note": "make-d-fixture.mjs で生の stream-json から抜き出した最小の JSON。全文ではない。パスと ID は置換済み",
+  "id": "D07",
+  "version": "2.1.293",
+  "exitCode": 0,
+  "stderrBytes": 0,
+  "settings": {
+    "project": {
+      "permissions": {
+        "deny": [
+          "Read(./zone/secret-a.txt",
+          "Read(./zone/secret-b.txt)"
+        ]
+      }
+    }
+  },
+  "prompt": "./zone/secret-a.txt と ./zone/secret-b.txt を、Read ツールで 1 つずつ読み、それぞれの内容をそのまま引用して返して。拒否されたものは、拒否のメッセージを 1 行そのまま報告し、ほかの方法を試さないで。",
+  "tools": [
+    {
+      "name": "Read",
+      "input": {
+        "file_path": "<work>\\cwd\\<case>\\zone\\secret-a.txt"
+      },
+      "isError": false,
+      "head": "1 DUMMY-A-q7k2m9x4 2",
+      "markers": [
+        "a"
+      ]
+    },
+    {
+      "name": "Read",
+      "input": {
+        "file_path": "<work>\\cwd\\<case>\\zone\\secret-b.txt"
+      },
+      "isError": true,
+      "head": "<tool_use_error>File is in a directory that is denied by your permission settings.</tool_use_error>",
+      "markers": []
+    }
+  ],
+  "result": {
+    "subtype": "success",
+    "isError": false,
+    "totalCostUsd": 0.00106102,
+    "numTurns": 3,
+    "permissionDenials": [
+      "Read"
+    ]
+  }
+}
